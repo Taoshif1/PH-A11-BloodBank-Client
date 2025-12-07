@@ -7,6 +7,8 @@ body {
   overflow-x: hidden;
   margin: 0;
   padding: 0;
+  background: #fddfdf;
+  color: #111;
 }
 
 html {
@@ -37,6 +39,7 @@ html {
   0% {
     transform: translateX(0);
   }
+
   100% {
     transform: translateX(-50%);
   }
@@ -52,9 +55,12 @@ html {
 
 /* Text Glow */
 @keyframes textGlow {
-  0%, 100% {
+
+  0%,
+  100% {
     text-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
   }
+
   50% {
     text-shadow: 0 0 25px rgba(239, 68, 68, 0.7);
   }
