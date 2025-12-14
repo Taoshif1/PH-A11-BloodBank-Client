@@ -50,6 +50,9 @@ export default function Navbar() {
               Funding
             </NavLink>
           )}
+          <NavLink to="/contact" onClick={() => setOpen(false)}>Contact</NavLink>
+          <NavLink to="/about-us" onClick={() => setOpen(false)}>About Us</NavLink>
+
         </nav>
 
         {/* RIGHT SIDE */}

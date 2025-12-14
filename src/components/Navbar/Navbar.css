@@ -104,6 +104,7 @@
   }
 
   .nav-links {
+    z-index: 101; 
     position: fixed;
     top: 62px;
     left: 0;
@@ -127,12 +128,12 @@
     transform: translateY(0);
   }
 
-  .mobile-overlay {
+    .mobile-overlay {
     display: block;
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 99;
+    z-index: 100; /* under the nav-links */
   }
 
   .actions {

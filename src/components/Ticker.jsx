@@ -1,6 +1,4 @@
-// Ticker.jsx
-import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { useEffect, useState } from "react";
 
 const Ticker = () => {
   const [requests, setRequests] = useState([]);
@@ -11,35 +9,88 @@ const Ticker = () => {
 
   const fetchPendingRequests = async () => {
     try {
-      // Ensure VITE_API_URL is correctly defined in your environment
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/donation-requests/pending`);
-      setRequests(response.data.slice(0, 5)); // Get only 5 recent
-    } catch (error) {
-      console.error('Error fetching requests:', error);
+      // Replace with your actual API endpoint
+      // const response = await fetch(
+      //   `${import.meta.env.VITE_API_URL}/donation-requests/pending`
+      // );
+      // const data = await response.json();
+      // setRequests(data.slice(0, 5));
+      
+      // Demo data for testing
+      setRequests([
+        { _id: "1", bloodGroup: "A+", recipientDistrict: "Dhaka" },
+        { _id: "2", bloodGroup: "O-", recipientDistrict: "Chittagong" },
+        { _id: "3", bloodGroup: "B+", recipientDistrict: "Sylhet" },
+        { _id: "4", bloodGroup: "AB+", recipientDistrict: "Rajshahi" },
+        { _id: "5", bloodGroup: "O+", recipientDistrict: "Khulna" },
+      ]);
+    } catch (err) {
+      console.error("Error fetching requests:", err);
     }
   };
 
   if (requests.length === 0) return null;
 
+  // Duplicate items for seamless scroll
+  const tickerItems = [...requests, ...requests];
+
   return (
-    <div className="bg-red-600 text-white py-2 overflow-hidden shadow-inner">
-      <div className="flex animate-marquee whitespace-nowrap">
-        {requests.map((request, index) => (
-          <span key={request._id} className="mx-8 flex items-center gap-2 text-lg">
-            <span className="font-extrabold">🩸 URGENT:</span>
-            <span>{request.bloodGroup} needed in {request.recipientDistrict}</span>
-            {index !== requests.length - 1 && <span className="mx-4">•</span>}
-          </span>
-        ))}
-        {/* Duplicate for seamless loop */}
-        {requests.map((request, index) => (
-          <span key={`${request._id}-duplicate`} className="mx-8 flex items-center gap-2 text-lg">
-            <span className="font-extrabold">🩸 URGENT:</span>
-            <span>{request.bloodGroup} needed in {request.recipientDistrict}</span>
-            {index !== requests.length - 1 && <span className="mx-4">•</span>}
+    <div
+      style={{
+        backgroundColor: "#dc2626",
+        color: "#fff",
+        overflow: "hidden",
+        fontSize: "1rem",
+        padding: "0.75rem 0",
+        whiteSpace: "nowrap",
+        position: "relative",
+        width: "100%",
+      }}
+    >
+      <div
+        style={{
+          display: "inline-block",
+          animation: "scroll 25s linear infinite",
+          willChange: "transform",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.animationPlayState = "paused";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.animationPlayState = "running";
+        }}
+      >
+        {tickerItems.map((req, idx) => (
+          <span
+            key={req._id + "-" + idx}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              marginRight: "3rem",
+              fontWeight: 500,
+            }}
+          >
+            <span style={{ fontWeight: "bold", fontSize: "1.1rem" }}>🩸 URGENT:</span>
+            <span>
+              {req.bloodGroup} needed in {req.recipientDistrict}
+            </span>
           </span>
         ))}
       </div>
+
+      <style>
+        {`
+          @keyframes scroll {
+            0% { 
+              transform: translateX(0); 
+            }
+            100% { 
+              transform: translateX(-50%); 
+            }
+          }
+        `}
+      </style>
     </div>
   );
 };
