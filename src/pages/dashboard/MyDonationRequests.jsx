@@ -176,7 +176,7 @@ const MyDonationRequests = () => {
                   <td>
                     <div className="flex gap-2">
                       <Link
-                        to={`/donation-requests/${request._id}`}
+                        to={`/donation-requests`}
                         className="btn btn-sm btn-info text-white"
                       >
                         <FaEye />
