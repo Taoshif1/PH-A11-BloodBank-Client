@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
 
 const Ticker = () => {
   const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchPendingRequests();
@@ -9,27 +11,24 @@ const Ticker = () => {
 
   const fetchPendingRequests = async () => {
     try {
-      // Replace with your actual API endpoint
-      // const response = await fetch(
-      //   `${import.meta.env.VITE_API_URL}/donation-requests/pending`
-      // );
-      // const data = await response.json();
-      // setRequests(data.slice(0, 5));
+      setLoading(true);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/donation-requests/pending`
+      );
       
-      // Demo data for testing
-      setRequests([
-        { _id: "1", bloodGroup: "A+", recipientDistrict: "Dhaka" },
-        { _id: "2", bloodGroup: "O-", recipientDistrict: "Chittagong" },
-        { _id: "3", bloodGroup: "B+", recipientDistrict: "Sylhet" },
-        { _id: "4", bloodGroup: "AB+", recipientDistrict: "Rajshahi" },
-        { _id: "5", bloodGroup: "O+", recipientDistrict: "Khulna" },
-      ]);
+      // Take first 5 requests
+      setRequests(response.data.slice(0, 5));
     } catch (err) {
       console.error("Error fetching requests:", err);
+      // Fallback to empty array on error
+      setRequests([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (requests.length === 0) return null;
+  // Don't show ticker if no requests or still loading
+  if (loading || requests.length === 0) return null;
 
   // Duplicate items for seamless scroll
   const tickerItems = [...requests, ...requests];
@@ -71,7 +70,9 @@ const Ticker = () => {
               fontWeight: 500,
             }}
           >
-            <span style={{ fontWeight: "bold", fontSize: "1.1rem" }}>🩸 URGENT:</span>
+            <span style={{ fontWeight: "bold", fontSize: "1.1rem" }}>
+              🩸 URGENT:
+            </span>
             <span>
               {req.bloodGroup} needed in {req.recipientDistrict}
             </span>
