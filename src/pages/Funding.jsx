@@ -8,7 +8,8 @@ import { FaDollarSign, FaCalendar, FaUser } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 
 // Load Stripe (replace with my publishable key)
-const stripePromise = loadStripe('pk_test_51ScAFcR3NUGSbqET0sdJfkF3ZAvCQ4sDIbGLjjHCr9VVGaG8Lr5GdNhIpnYCudSfKbLuNFXXWblZeOvhKMtpzmDR004Shh7weu');
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+console.log(stripePromise)
 
 const CheckoutForm = ({ onSuccess }) => {
   const stripe = useStripe();

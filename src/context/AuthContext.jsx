@@ -1,13 +1,5 @@
 import { createContext, useEffect, useState } from 'react';
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged,
-  updateProfile
-} from 'firebase/auth';
-import { auth } from '../firebase/firebase.config';
-import axios from 'axios';
+import axiosInstance from '../utils/axiosInstance';
 
 export const AuthContext = createContext(null);
 
@@ -16,136 +8,85 @@ const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState(null);
 
-  // Register user (Firebase + Backend)
-  const createUser = async (email, password, additionalData) => {
+  const createUser = async (formData) => {
     setLoading(true);
     try {
-      // Create Firebase user
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      
-      // Register in backend
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/auth/register`,
-        {
-          email,
-          password,
-          confirmPassword: password,
-          ...additionalData
-        },
-        { withCredentials: true }
-      );
-
-      return result;
+      const response = await axiosInstance.post('/auth/register', formData);
+      setUserData(response.data.user);
+      setUser(response.data.user);
+      return response.data;
     } catch (error) {
-      console.error('Registration error:', error);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Login user (Backend only - we're not using Firebase for auth)
   const loginUser = async (email, password) => {
     setLoading(true);
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/auth/login`,
-        { email, password },
-        { withCredentials: true }
-      );
-
-      // Sign in to Firebase to maintain compatibility
-      await signInWithEmailAndPassword(auth, email, password);
+      const response = await axiosInstance.post('/auth/login', { 
+        email, 
+        password 
+      });
       
       setUserData(response.data.user);
+      setUser(response.data.user);
+      
       return response.data;
     } catch (error) {
-      console.error('Login error:', error);
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  // Logout user
   const logoutUser = async () => {
     setLoading(true);
     try {
-      // Logout from backend
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/auth/logout`,
-        {},
-        { withCredentials: true }
-      );
-      
-      // Sign out from Firebase
-      await signOut(auth);
-      
+      await axiosInstance.post('/auth/logout');
       setUserData(null);
+      setUser(null);
     } catch (error) {
-      console.error('Logout error:', error);
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  // Update user profile
-  const updateUserProfile = async (name, photo) => {
+  const updateUserProfile = async (profileData) => {
     try {
-      // Update Firebase profile
-      if (auth.currentUser) {
-        await updateProfile(auth.currentUser, {
-          displayName: name,
-          photoURL: photo
-        });
-      }
-
-      // Refresh user data from backend
-      if (user) {
-        await fetchUserData();
-      }
+      const response = await axiosInstance.patch('/users/profile', profileData);
+      await fetchUserData();
+      return response.data;
     } catch (error) {
-      console.error('Profile update error:', error);
       throw error;
     }
   };
 
-  // Fetch user data from backend
   const fetchUserData = async () => {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/users/profile`,
-        { withCredentials: true }
-      );
+      const response = await axiosInstance.get('/users/profile');
       setUserData(response.data);
+      setUser(response.data);
       return response.data;
     } catch (error) {
-      console.error('Error fetching user data:', error);
       setUserData(null);
+      setUser(null);
+      throw error;
     }
   };
 
-  // Check auth status on mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Check if user is authenticated via backend
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/auth/me`,
-          { withCredentials: true }
-        );
+        const response = await axiosInstance.get('/auth/me');
         
         if (response.data.user) {
           setUserData(response.data.user);
-          
-          // Try to sync with Firebase
-          const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-          });
-
-          return () => unsubscribe();
+          setUser(response.data.user);
         }
       } catch (error) {
-        // Not authenticated
         setUser(null);
         setUserData(null);
       } finally {
