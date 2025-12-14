@@ -1,4 +1,4 @@
-// ContactUs.jsx
+// Contact.jsx
 import { FaMapMarkerAlt, FaPhone, FaEnvelope } from 'react-icons/fa';
 
 const ContactUs = () => {
