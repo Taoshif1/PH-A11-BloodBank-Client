@@ -31,7 +31,6 @@
 - [Deployment](#deployment)
 - [Testing](#testing)
 - [Contributing](#contributing)
-- [License](#license)
 
 ---
 
@@ -136,7 +135,7 @@ The Blood Donation Client is a full-featured React application that enables user
 - **Match Sorter** 8.2.0 - Simple string matching/sorting
 - **Sort By** 1.2.0 - Array sorting utility
 
-## Development Tools
+### Development Tools
 
 - **ESLint** 9.39.1 - Code linting
 - **@vitejs/plugin-react** 5.1.1 - Vite React plugin
@@ -148,7 +147,6 @@ The Blood Donation Client is a full-featured React application that enables user
 
 ```
 bloodDon-client/
-│
 ├── dist/               # Production build files
 ├── node_modules/       # Project dependencies
 ├── public/             # Public assets
@@ -767,7 +765,7 @@ Contributions are welcome! Please follow these steps:
 
 ---
 
-## 👥 Authors
+## 👥 Author
 
 - **Gazi Taoshif** - *Full Stack Developer*
 ---
