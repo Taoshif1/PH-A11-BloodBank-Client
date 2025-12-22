@@ -6,106 +6,103 @@ export const AuthContext = createContext(null);
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [userData, setUserData] = useState(null);
 
+  // Register with backend only (Firebase is handled in component)
   const createUser = async (formData) => {
-    setLoading(true);
     try {
       const response = await axiosInstance.post('/auth/register', formData);
-      setUserData(response.data.user);
       setUser(response.data.user);
       return response.data;
     } catch (error) {
+      console.error('Registration error:', error);
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
+  // Login with backend only (Firebase is handled in component)
   const loginUser = async (email, password) => {
-    setLoading(true);
     try {
       const response = await axiosInstance.post('/auth/login', { 
-        email, 
+        email: email.trim().toLowerCase(), 
         password 
       });
       
-      setUserData(response.data.user);
       setUser(response.data.user);
-      
       return response.data;
     } catch (error) {
+      console.error('Login error:', error);
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
+  // Logout
   const logoutUser = async () => {
-    setLoading(true);
     try {
       await axiosInstance.post('/auth/logout');
-      setUserData(null);
       setUser(null);
     } catch (error) {
-      throw error;
-    } finally {
-      setLoading(false);
+      console.error('Logout error:', error);
+      setUser(null);
     }
   };
 
+  // Update user profile
   const updateUserProfile = async (profileData) => {
     try {
       const response = await axiosInstance.patch('/users/profile', profileData);
-      await fetchUserData();
+      // Fetch fresh user data after update
+      await checkAuth();
       return response.data;
     } catch (error) {
+      console.error('Profile update error:', error);
       throw error;
     }
   };
 
-  const fetchUserData = async () => {
+  // Fetch user profile
+  const fetchUserProfile = async () => {
     try {
       const response = await axiosInstance.get('/users/profile');
-      setUserData(response.data);
-      setUser(response.data);
+      setUser(response.data.user || response.data);
       return response.data;
     } catch (error) {
-      setUserData(null);
-      setUser(null);
+      console.error('Fetch profile error:', error);
       throw error;
     }
   };
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await axiosInstance.get('/auth/me');
-        
-        if (response.data.user) {
-          setUserData(response.data.user);
-          setUser(response.data.user);
-        }
-      } catch (error) {
-        setUser(null);
-        setUserData(null);
-      } finally {
-        setLoading(false);
+  // Check authentication status
+  const checkAuth = async () => {
+    try {
+      const response = await axiosInstance.get('/auth/me');
+      
+      if (response.data.user) {
+        setUser(response.data.user);
+        return response.data.user;
       }
-    };
+    } catch (error) {
+      console.warn('Not authenticated:', error.message);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Check auth on app load
+  useEffect(() => {
     checkAuth();
   }, []);
 
   const authInfo = {
     user,
-    userData,
     loading,
     createUser,
     loginUser,
     logoutUser,
     updateUserProfile,
-    fetchUserData
+    fetchUserProfile,
+    checkAuth,
+    isAuthenticated: !!user
   };
 
   return (

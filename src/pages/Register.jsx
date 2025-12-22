@@ -6,10 +6,12 @@ import { allDistricts, getUpazilasByDistrict, bloodGroups } from '../utils/geoDa
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { auth } from '../firebase/firebase.config';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
 const Register = () => {
   const { register, handleSubmit, watch, formState: { errors }, reset } = useForm();
-  const { createUser, updateUserProfile } = useAuth();
+  const { createUser: registerInBackend } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -21,47 +23,92 @@ const Register = () => {
   const onSubmit = async (data) => {
     setLoading(true);
 
-    if (data.password !== data.confirmPassword) {
-      toast.error('Passwords do not match!');
-      setLoading(false);
-      return;
-    }
-
     try {
-      const imageFile = data.avatar[0];
-      const formData = new FormData();
-      formData.append('image', imageFile);
+      // Validate passwords match
+      if (data.password !== data.confirmPassword) {
+        toast.error('Passwords do not match!');
+        setLoading(false);
+        return;
+      }
 
-      const imgbbResponse = await axios.post(
-        `https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_IMGBB_API_KEY}`,
-        formData
+      // Step 1: Upload avatar to ImgBB (optional)
+      let avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}&background=dc2626&color=fff`;
+      
+      if (data.avatar && data.avatar[0]) {
+        try {
+          const imageFile = data.avatar[0];
+          const formData = new FormData();
+          formData.append('image', imageFile);
+
+          const imgbbResponse = await axios.post(
+            `https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_IMGBB_API_KEY}`,
+            formData
+          );
+
+          avatarUrl = imgbbResponse.data.data.display_url;
+          console.log('✅ Avatar uploaded:', avatarUrl);
+        } catch (imgError) {
+          console.warn('⚠️  ImgBB upload failed, using default avatar:', imgError.message);
+        }
+      }
+
+      // Step 2: Create Firebase user
+      console.log('📝 Creating Firebase user for:', data.email);
+      const firebaseUser = await createUserWithEmailAndPassword(
+        auth,
+        data.email.trim().toLowerCase(),
+        data.password
       );
 
-      const avatarUrl = imgbbResponse.data.data.display_url;
+      // Step 3: Update Firebase profile
+      console.log('📝 Updating Firebase profile...');
+      await updateProfile(firebaseUser.user, {
+        displayName: data.name.trim(),
+        photoURL: avatarUrl
+      });
 
-      await createUser(data.email, data.password);
-      await updateUserProfile(data.name, avatarUrl);
+      console.log('✅ Firebase user created:', firebaseUser.user.email);
 
+      // Step 4: Register in backend (MongoDB)
       const userData = {
-        email: data.email,
-        name: data.name,
+        email: data.email.trim().toLowerCase(),
+        name: data.name.trim(),
         avatar: avatarUrl,
-        bloodGroup: data.bloodGroup,
-        district: data.district,
-        upazila: data.upazila,
+        bloodGroup: data.bloodGroup.trim(),
+        district: data.district.trim(),
+        upazila: data.upazila.trim(),
         password: data.password
       };
 
-      await axios.post(`${import.meta.env.VITE_API_URL}/auth/register`, userData, {
-        withCredentials: true
-      });
+      console.log('📝 Registering in backend with data:', userData);
 
-      toast.success('Registration successful!');
+      const response = await registerInBackend(userData);
+
+      console.log('✅ Backend registration successful:', response);
+
+      toast.success('Registration successful! Welcome to Blood Donation Community 🩸');
       reset();
-      navigate('/');
+      
+      // Redirect after short delay
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
+
     } catch (error) {
-      console.error('Registration error:', error);
-      toast.error(error.response?.data?.message || 'Registration failed');
+      console.error('❌ Registration error:', error);
+      
+      // Handle Firebase specific errors
+      if (error.code === 'auth/email-already-in-use') {
+        toast.error('Email already exists! Please use a different email.');
+      } else if (error.code === 'auth/weak-password') {
+        toast.error('Password is too weak. Use at least 6 characters.');
+      } else if (error.code === 'auth/invalid-email') {
+        toast.error('Invalid email address.');
+      } else if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error(error.message || 'Registration failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -105,7 +152,7 @@ const Register = () => {
                     required: 'Email is required',
                     pattern: {
                       value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Invalid email'
+                      message: 'Invalid email format'
                     }
                   })}
                 />
@@ -116,15 +163,15 @@ const Register = () => {
             {/* Avatar */}
             <div className="form-control w-full">
               <label className="label">
-                <span className="label-text font-semibold">Profile Picture</span>
+                <span className="label-text font-semibold">Profile Picture (Optional)</span>
               </label>
               <input
                 type="file"
                 accept="image/*"
                 className="file-input file-input-bordered w-full"
-                {...register('avatar', { required: 'Profile picture is required' })}
+                {...register('avatar')}
               />
-              {errors.avatar && <span className="text-error text-sm mt-1">{errors.avatar.message}</span>}
+              <p className="text-gray-500 text-sm mt-1">If not provided, a default avatar will be generated</p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
@@ -190,16 +237,16 @@ const Register = () => {
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Enter password"
+                    placeholder="Enter password (min 6 chars)"
                     className="input input-bordered w-full pr-10"
                     {...register('password', { 
                       required: 'Password is required',
-                      minLength: { value: 6, message: 'Min 6 characters' }
+                      minLength: { value: 6, message: 'Min 6 characters required' }
                     })}
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? <FaEyeSlash /> : <FaEye />}
@@ -216,13 +263,13 @@ const Register = () => {
                 <div className="relative">
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
-                    placeholder="Confirm password"
+                    placeholder="Confirm your password"
                     className="input input-bordered w-full pr-10"
-                    {...register('confirmPassword', { required: 'Please confirm password' })}
+                    {...register('confirmPassword', { required: 'Please confirm your password' })}
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
                     {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
@@ -237,7 +284,14 @@ const Register = () => {
               className="btn btn-error text-white w-full mt-6"
               disabled={loading}
             >
-              {loading ? <span className="loading loading-spinner"></span> : 'Register'}
+              {loading ? (
+                <>
+                  <span className="loading loading-spinner loading-sm"></span>
+                  Registering...
+                </>
+              ) : (
+                'Register'
+              )}
             </button>
           </form>
 

@@ -4,11 +4,12 @@ import { useForm } from 'react-hook-form';
 import useAuth from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
-import axios from 'axios';
+import { auth } from '../firebase/firebase.config';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 const Login = () => {
   const { register, handleSubmit, formState: { errors } } = useForm();
-  const { loginUser } = useAuth();
+  const { loginUser: loginInBackend } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
@@ -20,22 +21,40 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Login with Firebase
-      await loginUser(data.email, data.password);
+      const email = data.email.trim().toLowerCase();
 
-      // Login with backend
-      await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, {
-        email: data.email,
-        password: data.password
-      }, {
-        withCredentials: true
-      });
+      console.log('📝 Logging in with email:', email);
+
+      // Step 1: Login with Firebase
+      console.log('🔐 Authenticating with Firebase...');
+      const firebaseUser = await signInWithEmailAndPassword(auth, email, data.password);
+      console.log('✅ Firebase login successful:', firebaseUser.user.email);
+
+      // Step 2: Login with backend (get JWT token)
+      console.log('📝 Authenticating with backend...');
+      const response = await loginInBackend(email, data.password);
+      console.log('✅ Backend login successful:', response);
 
       toast.success('Login successful!');
       navigate(from, { replace: true });
+
     } catch (error) {
-      console.error('Login error:', error);
-      toast.error(error.response?.data?.message || 'Login failed');
+      console.error('❌ Login error:', error);
+
+      // Handle Firebase specific errors
+      if (error.code === 'auth/user-not-found') {
+        toast.error('User not found. Please register first.');
+      } else if (error.code === 'auth/wrong-password') {
+        toast.error('Invalid password. Please try again.');
+      } else if (error.code === 'auth/invalid-email') {
+        toast.error('Invalid email address.');
+      } else if (error.code === 'auth/user-disabled') {
+        toast.error('User account is disabled.');
+      } else if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error(error.message || 'Login failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -84,7 +103,7 @@ const Login = () => {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? <FaEyeSlash /> : <FaEye />}
@@ -99,7 +118,14 @@ const Login = () => {
               className="btn btn-error text-white w-full"
               disabled={loading}
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? (
+                <>
+                  <span className="loading loading-spinner loading-sm"></span>
+                  Logging in...
+                </>
+              ) : (
+                'Login'
+              )}
             </button>
           </form>
 
