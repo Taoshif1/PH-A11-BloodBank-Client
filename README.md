@@ -5,7 +5,6 @@
 [![React](https://img.shields.io/badge/React-19.2.0-blue.svg)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-7.2.4-purple.svg)](https://vitejs.dev/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4.18-38B2AC.svg)](https://tailwindcss.com/)
-[![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
 
 ## 🌐 Live Demo
 
